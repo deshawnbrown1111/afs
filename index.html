@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discord Checker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="scan-line" id="scanLine"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-text">Checker</div>
+      <div class="logo-sub">v2.4.1</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Tools</div>
+
+    <div class="nav-item active" data-panel="display" onclick="switchPanel('display', this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+      Display Checker
+    </div>
+
+    <div class="nav-item" data-panel="username" onclick="switchPanel('username', this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
+      Username Checker
+    </div>
+
+    <div class="nav-item" data-panel="server" onclick="switchPanel('server', this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      Server Checker
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    discord checker &nbsp;◆&nbsp; 2025
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-dot"></div>
+    <div class="topbar-title" id="topbarTitle">Display Checker</div>
+    <div class="topbar-stats">
+      <div class="stat-chip"><div class="stat-dot green"></div><span id="statValid">0</span> valid</div>
+      <div class="stat-chip"><div class="stat-dot red"></div><span id="statInvalid">0</span> invalid</div>
+      <div class="stat-chip"><div class="stat-dot yellow"></div><span id="statTotal">0</span> total</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ DISPLAY PANEL ══ -->
+    <div class="panel active" id="panel-display">
+      <div class="input-col">
+        <div class="card">
+          <div class="card-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5865f2" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span class="card-title">Input Tokens</span>
+            <span class="card-subtitle" id="display-count-label">0 tokens</span>
+          </div>
+          <div class="card-body">
+            <textarea id="display-input" rows="8" placeholder="Paste tokens here...&#10;&#10;token&#10;user:pass:token&#10;email:pass:token"></textarea>
+            <div class="format-hint">
+              Accepts: <span>token</span> · <span>user:pass:token</span> · <span>email:pass:token</span>
+            </div>
+            <div class="token-count">
+              <span>Detected: <span id="display-detected">0</span> tokens</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5865f2" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span class="card-title">Upload File</span>
+          </div>
+          <div class="card-body">
+            <div class="drop-zone" id="display-drop">
+              <input type="file" accept=".txt,.csv" onchange="handleFile(event,'display')">
+              <div class="drop-icon">📂</div>
+              <div class="drop-text"><strong>Click or drop</strong> a .txt file</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5865f2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span class="card-title">Run Check</span>
+          </div>
+          <div class="card-body">
+            <div class="progress-wrap" id="display-progress-wrap" style="display:none; margin-bottom:12px;">
+              <div class="progress-label">
+                <span>Checking tokens...</span>
+                <span id="display-prog-text">0 / 0</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" id="display-prog-fill"></div></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="runCheck('display')" id="display-run-btn">▶ Run Check</button>
+              <button class="btn btn-ghost" onclick="clearAll('display')">Clear</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="results-col">
+        <div class="results-toolbar">
+          <div class="results-tabs">
+            <button class="rtab active" onclick="filterResults('display','all',this)">All <span class="count" id="display-tab-all">0</span></button>
+            <button class="rtab valid" onclick="filterResults('display','valid',this)">Valid <span class="count" id="display-tab-valid">0</span></button>
+            <button class="rtab invalid" onclick="filterResults('display','invalid',this)">Invalid <span class="count" id="display-tab-invalid">0</span></button>
+          </div>
+          <div class="export-row">
+            <button class="btn-sm" onclick="exportResults('display','valid','token')">Export Valid Tokens</button>
+            <button class="btn-sm" onclick="exportResults('display','valid','combo')">Export Valid Combos</button>
+            <button class="btn-sm" onclick="exportResults('display','all','json')">Export JSON</button>
+          </div>
+        </div>
+
+        <div class="results-list">
+          <div class="results-header">
+            <div class="col-token">Token</div>
+            <div class="col-status">Status</div>
+            <div class="col-info">Display Info</div>
+            <div class="col-copy">Copy</div>
+          </div>
+          <div class="results-scroll" id="display-results-scroll">
+            <div class="empty-state" id="display-empty">
+              <div class="empty-icon">🔍</div>
+              <div>No results yet.<br>Paste tokens and run a check.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ USERNAME PANEL ══ -->
+    <div class="panel" id="panel-username">
+      <div class="input-col">
+        <div class="card">
+          <div class="card-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5865f2" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span class="card-title">Input Tokens</span>
+            <span class="card-subtitle" id="username-count-label">0 tokens</span>
+          </div>
+          <div class="card-body">
+            <textarea id="username-input" rows="8" placeholder="Paste tokens here...&#10;&#10;token&#10;user:pass:token&#10;email:pass:token"></textarea>
+            <div class="format-hint">
+              Accepts: <span>token</span> · <span>user:pass:token</span> · <span>email:pass:token</span>
+            </div>
+            <div class="token-count">
+              <span>Detected: <span id="username-detected">0</span> tokens</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5865f2" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span class="card-title">Upload File</span>
+          </div>
+          <div class="card-body">
+            <div class="drop-zone" id="username-drop">
+              <input type="file" accept=".txt,.csv" onchange="handleFile(event,'username')">
+              <div class="drop-icon">📂</div>
+              <div class="drop-text"><strong>Click or drop</strong> a .txt file</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5865f2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span class="card-title">Run Check</span>
+          </div>
+          <div class="card-body">
+            <div class="progress-wrap" id="username-progress-wrap" style="display:none; margin-bottom:12px;">
+              <div class="progress-label">
+                <span>Checking tokens...</span>
+                <span id="username-prog-text">0 / 0</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" id="username-prog-fill"></div></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="runCheck('username')" id="username-run-btn">▶ Run Check</button>
+              <button class="btn btn-ghost" onclick="clearAll('username')">Clear</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="results-col">
+        <div class="results-toolbar">
+          <div class="results-tabs">
+            <button class="rtab active" onclick="filterResults('username','all',this)">All <span class="count" id="username-tab-all">0</span></button>
+            <button class="rtab valid" onclick="filterResults('username','valid',this)">Valid <span class="count" id="username-tab-valid">0</span></button>
+            <button class="rtab invalid" onclick="filterResults('username','invalid',this)">Invalid <span class="count" id="username-tab-invalid">0</span></button>
+          </div>
+          <div class="export-row">
+            <button class="btn-sm" onclick="exportResults('username','valid','token')">Export Valid Tokens</button>
+            <button class="btn-sm" onclick="exportResults('username','valid','combo')">Export Valid Combos</button>
+            <button class="btn-sm" onclick="exportResults('username','all','json')">Export JSON</button>
+          </div>
+        </div>
+
+        <div class="results-list">
+          <div class="results-header">
+            <div class="col-token">Token</div>
+            <div class="col-status">Status</div>
+            <div class="col-info">Username Info</div>
+            <div class="col-copy">Copy</div>
+          </div>
+          <div class="results-scroll" id="username-results-scroll">
+            <div class="empty-state" id="username-empty">
+              <div class="empty-icon">🔍</div>
+              <div>No results yet.<br>Paste tokens and run a check.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SERVER PANEL ══ -->
+    <div class="panel" id="panel-server">
+      <div class="input-col">
+        <div class="card">
+          <div class="card-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5865f2" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span class="card-title">Input Tokens</span>
+            <span class="card-subtitle" id="server-count-label">0 tokens</span>
+          </div>
+          <div class="card-body">
+            <textarea id="server-input" rows="8" placeholder="Paste tokens here...&#10;&#10;token&#10;user:pass:token&#10;email:pass:token"></textarea>
+            <div class="format-hint">
+              Accepts: <span>token</span> · <span>user:pass:token</span> · <span>email:pass:token</span>
+            </div>
+            <div class="token-count">
+              <span>Detected: <span id="server-detected">0</span> tokens</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5865f2" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span class="card-title">Upload File</span>
+          </div>
+          <div class="card-body">
+            <div class="drop-zone" id="server-drop">
+              <input type="file" accept=".txt,.csv" onchange="handleFile(event,'server')">
+              <div class="drop-icon">📂</div>
+              <div class="drop-text"><strong>Click or drop</strong> a .txt file</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5865f2" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span class="card-title">Run Check</span>
+          </div>
+          <div class="card-body">
+            <div class="progress-wrap" id="server-progress-wrap" style="display:none; margin-bottom:12px;">
+              <div class="progress-label">
+                <span>Checking tokens...</span>
+                <span id="server-prog-text">0 / 0</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" id="server-prog-fill"></div></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="runCheck('server')" id="server-run-btn">▶ Run Check</button>
+              <button class="btn btn-ghost" onclick="clearAll('server')">Clear</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="results-col">
+        <div class="results-toolbar">
+          <div class="results-tabs">
+            <button class="rtab active" onclick="filterResults('server','all',this)">All <span class="count" id="server-tab-all">0</span></button>
+            <button class="rtab valid" onclick="filterResults('server','valid',this)">Valid <span class="count" id="server-tab-valid">0</span></button>
+            <button class="rtab invalid" onclick="filterResults('server','invalid',this)">Invalid <span class="count" id="server-tab-invalid">0</span></button>
+          </div>
+          <div class="export-row">
+            <button class="btn-sm" onclick="exportResults('server','valid','token')">Export Valid Tokens</button>
+            <button class="btn-sm" onclick="exportResults('server','valid','combo')">Export Valid Combos</button>
+            <button class="btn-sm" onclick="exportResults('server','all','json')">Export JSON</button>
+          </div>
+        </div>
+
+        <div class="results-list">
+          <div class="results-header">
+            <div class="col-token">Token</div>
+            <div class="col-status">Status</div>
+            <div class="col-info">Server Info</div>
+            <div class="col-copy">Copy</div>
+          </div>
+          <div class="results-scroll" id="server-results-scroll">
+            <div class="empty-state" id="server-empty">
+              <div class="empty-icon">🔍</div>
+              <div>No results yet.<br>Paste tokens and run a check.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script src="script.js"></script>
+</body>
+</html>
