@@ -16,22 +16,40 @@ export default async function handler(req, res) {
   }
 }
 
-// ── JOIN SERVER VIA INVITE ──
+// ── JOIN SERVER VIA GUILD ID ──
+// Uses the guild preview + member join endpoint.
+// The token must already have an invite or the server must be public/discoverable.
+// For most use cases: PUT /guilds/{guild.id}/members/@me
 async function handleJoin(res, token, { invite }) {
-  if (!invite) return res.status(400).json({ ok: false, error: 'Missing invite code' });
+  const guildId = (invite || '').trim();
+  if (!guildId) return res.status(400).json({ ok: false, error: 'Missing guild ID' });
 
   try {
-    const r    = await fetch(`${DISCORD_API}/invites/${invite}`, {
-      method: 'POST',
+    // First fetch guild info so we can return the name
+    const infoRes  = await fetch(`${DISCORD_API}/guilds/${guildId}/preview`, {
+      headers: { Authorization: token },
+    });
+    const infoData = infoRes.ok ? await infoRes.json() : {};
+    const guildName = infoData?.name || guildId;
+
+    // Join the guild
+    const r = await fetch(`${DISCORD_API}/guilds/${guildId}/members/@me`, {
+      method: 'PUT',
       headers: {
         Authorization: token,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({}),
     });
-    const data = await r.json();
-    if (!r.ok) return res.status(200).json({ ok: false, error: data?.message || `HTTP ${r.status}` });
-    return res.status(200).json({ ok: true, guild_name: data?.guild?.name || invite });
+
+    // 201 = joined, 204 = already a member (both are success)
+    if (r.status === 201 || r.status === 204) {
+      return res.status(200).json({ ok: true, guild_name: guildName });
+    }
+
+    let errMsg = `HTTP ${r.status}`;
+    try { const d = await r.json(); errMsg = d?.message || errMsg; } catch (_) {}
+    return res.status(200).json({ ok: false, error: errMsg });
   } catch (err) {
     return res.status(200).json({ ok: false, error: err.message });
   }
