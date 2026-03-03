@@ -26,7 +26,6 @@ async function handleJoin(res, token, { invite }) {
       headers: {
         Authorization: token,
         'Content-Type': 'application/json',
-        'X-Context-Properties': 'eyJsb2NhdGlvbiI6Ikpva...',  // base64 of {"location":"Join Guild"}
       },
       body: JSON.stringify({}),
     });
@@ -40,7 +39,7 @@ async function handleJoin(res, token, { invite }) {
 
 // ── OPEN DM CHANNEL THEN SEND MESSAGE ──
 async function handleDm(res, token, { targetId, message }) {
-  if (!targetId)       return res.status(400).json({ ok: false, error: 'Missing targetId' });
+  if (!targetId)        return res.status(400).json({ ok: false, error: 'Missing targetId' });
   if (!message?.trim()) return res.status(400).json({ ok: false, error: 'Missing message' });
 
   try {
@@ -53,10 +52,8 @@ async function handleDm(res, token, { targetId, message }) {
     const chanData = await chanRes.json();
     if (!chanRes.ok) return res.status(200).json({ ok: false, error: chanData?.message || `DM open failed ${chanRes.status}` });
 
-    const channelId = chanData.id;
-
     // Send message
-    const msgRes  = await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
+    const msgRes  = await fetch(`${DISCORD_API}/channels/${chanData.id}/messages`, {
       method: 'POST',
       headers: { Authorization: token, 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: message }),
@@ -90,26 +87,48 @@ async function handleChannelMessage(res, token, { channelId, message }) {
 }
 
 // ── SEND FRIEND REQUEST ──
+// Discord API v10 behaviour:
+//   New-style usernames (pomelo, no discriminator):
+//     POST /users/@me/relationships  { "username": "john" }
+//   Legacy usernames (still on tag system):
+//     POST /users/@me/relationships  { "username": "john", "discriminator": 1234 }
+//
+// Sending discriminator=0 or discriminator="0" causes HTTP 400 — omit it entirely for new accounts.
 async function handleFriendRequest(res, token, { username, discriminator }) {
   if (!username) return res.status(400).json({ ok: false, error: 'Missing username' });
 
-  try {
-    // Discord's new username system uses discriminator "0" for pomelo users
-    const body = discriminator && discriminator !== '0'
-      ? { username, discriminator: parseInt(discriminator, 10) }
-      : { username };
+  // Build body — only include discriminator when it's a real legacy tag (non-zero number)
+  const discNum = parseInt(discriminator, 10);
+  const body    = (discNum && discNum !== 0)
+    ? { username: username.trim(), discriminator: discNum }
+    : { username: username.trim() };
 
-    const r    = await fetch(`${DISCORD_API}/users/@me/relationships`, {
+  try {
+    const r = await fetch(`${DISCORD_API}/users/@me/relationships`, {
       method: 'POST',
-      headers: { Authorization: token, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: token,
+        'Content-Type': 'application/json',
+        // Required by Discord — without this the endpoint returns 400 or 404
+        'X-Discord-Locale': 'en-US',
+      },
       body: JSON.stringify(body),
     });
 
-    // 204 = success (no body)
+    // 204 No Content = success
     if (r.status === 204) return res.status(200).json({ ok: true });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) return res.status(200).json({ ok: false, error: data?.message || `HTTP ${r.status}` });
-    return res.status(200).json({ ok: true });
+
+    // Some tokens return 200 with empty body on success too
+    if (r.status === 200) return res.status(200).json({ ok: true });
+
+    // Anything else = failure — try to parse error message
+    let errMsg = `HTTP ${r.status}`;
+    try {
+      const data = await r.json();
+      errMsg = data?.message || errMsg;
+    } catch (_) { /* response had no body */ }
+
+    return res.status(200).json({ ok: false, error: errMsg });
   } catch (err) {
     return res.status(200).json({ ok: false, error: err.message });
   }
