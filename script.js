@@ -476,8 +476,8 @@ async function runJoiner() {
   if (!inviteRaw) { showToast('Enter an invite code.'); return; }
   if (!tokens.length) { showToast('No valid tokens detected.'); return; }
 
-  // Strip to just the code
-  const invite = inviteRaw.replace(/https?:\/\/discord\.gg\//i,'').replace(/https?:\/\/discord\.com\/invite\//i,'').trim();
+  // It's a raw guild/server ID now
+  const invite = inviteRaw;
 
   state.joiner.log = [];
   stopFlags.joiner = false;
